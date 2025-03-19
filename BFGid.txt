@@ -1,0 +1,45 @@
+from telethon import utils
+from telethon.tl.types import Message
+from .. import loader, utils as loader_utils
+
+@loader.tds
+class BFGid(loader.Module):
+    """Модуль для получения Telegram ID через @bforgame_bot
+    Создатель: @aulies
+    """
+
+    strings = {"name": "BFGid"}
+
+    @loader.command()
+    async def idcmd(self, message: Message):
+        """.id <игровой айди> - получить Telegram ID через @bforgame_bot"""
+
+        args = loader_utils.get_args(message)
+        if not args:
+            return await utils.answer(message, "Введите игровой айди.")
+
+        try:
+            user_id = int(args[0])
+        except ValueError:
+            return await utils.answer(message, "Игровой айди должен быть числовым.")
+
+        result = await self.fetch_telegram_id(user_id)
+
+        if result:
+            await self.client.send_message(message.to_id, result)
+        else:
+            await utils.answer(message, "Не удалось получить результат.")
+
+        await message.delete()
+
+    async def fetch_telegram_id(self, user_id: int) -> str:
+        bot_username = "@bforgame_bot"
+
+        async with self.client.conversation(bot_username) as conv:
+            await conv.send_message(f"/get_telegram_id {user_id}")
+
+            try:
+                response = await conv.get_response(timeout=10)
+                return response.text
+            except Exception:
+                return None
